@@ -5,7 +5,7 @@ namespace Movie.Models
 {
     public class MovieDbContext: IdentityDbContext<User>    
     {
-        public DbSet<Film> Films { get; set; }
+        public DbSet<Movie> Movies { get; set; }
 
         public MovieDbContext(DbContextOptions<MovieDbContext> options)
             : base(options)
@@ -16,12 +16,12 @@ namespace Movie.Models
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<User>()
-                .HasMany(u => u.Films)
+                .HasMany(u => u.Movies)
                 .WithOne(f => f.Author);
 
-            modelBuilder.Entity<Film>()
+            modelBuilder.Entity<Movie>()
                 .HasOne(f => f.Author)
-                .WithMany(u => u.Films);
+                .WithMany(u => u.Movies);
 
             base.OnModelCreating(modelBuilder);
         }

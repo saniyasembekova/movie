@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Scaffolding.Metadata;
 
 namespace Movie.Models
 {
-    public class Film
+    public class Movie
     {
         [Key]
         public int Id { get; set; }

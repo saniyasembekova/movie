@@ -6,6 +6,6 @@ namespace Movie.Models
 {
     public class User: IdentityUser
     {
-        public ICollection<Film> Films { get; set; }
+        public ICollection<Movie> Movies { get; set; }
     }
 }

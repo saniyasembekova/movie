@@ -1,12 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using AutoMapper;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Movie.Models;
+using Movie.Web.Models;
+using MovieModel = Movie.Models.Movie;
 
 namespace Movie.Web.Controllers
 {
@@ -14,18 +19,21 @@ namespace Movie.Web.Controllers
     {
         private readonly MovieDbContext _context;
         private readonly UserManager<User> _userManager;
+        private readonly IMapper _mapper;
+        private static int pageSize = 3;
 
-        public MoviesController(MovieDbContext context, UserManager<User> userManager)
+        public MoviesController(MovieDbContext context, UserManager<User> userManager, IMapper mapper)
         {
             _context = context;
             _userManager = userManager;
+            _mapper = mapper;
         }
 
         // GET: Movies
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(int? pageNumber)
         {
-            var movieDbContext = _context.Movies.Include(f => f.Author);
-            return View(await movieDbContext.ToListAsync());
+            IQueryable<MovieModel> movies = _context.Movies.Include(m => m.Author);
+            return View(await PageViewModel<MovieModel>.CreateAsync(movies, pageNumber ?? 1, pageSize));
         }
 
         // GET: Movies/Details/5
@@ -36,15 +44,15 @@ namespace Movie.Web.Controllers
                 return NotFound();
             }
 
-            var Movie = await _context.Movies
+            var movie = await _context.Movies
                 .Include(f => f.Author)
                 .FirstOrDefaultAsync(m => m.Id == id);
-            if (Movie == null)
+            if (movie == null)
             {
                 return NotFound();
             }
 
-            return View(Movie);
+            return View(movie);
         }
 
         // GET: Movies/Create
@@ -58,18 +66,19 @@ namespace Movie.Web.Controllers
         // more details see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Name,Description,Year,Producer")] Movie.Models.Movie movie)
+        public async Task<IActionResult> Create([Bind("Id,Name,Description,Year,Producer,NewPoster")] MovieViewModel movieVM)
         {
             if (ModelState.IsValid)
             {
+                var movie = _mapper.Map<MovieModel>(movieVM);
                 var currentUserId = _userManager.GetUserId(User);
                 movie.AuthorId = currentUserId;
+                
                 _context.Add(movie);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["AuthorId"] = new SelectList(_context.Users, "Id", "Id", movie.AuthorId);
-            return View(movie);
+            return View(movieVM);
         }
 
         // GET: Movies/Edit/5
@@ -80,13 +89,14 @@ namespace Movie.Web.Controllers
                 return NotFound();
             }
 
-            var Movie = await _context.Movies.FindAsync(id);
-            if (Movie == null)
+            var movie = await _context.Movies.FindAsync(id);
+            if (movie == null)
             {
                 return NotFound();
             }
-            ViewData["AuthorId"] = new SelectList(_context.Users, "Id", "Id", Movie.AuthorId);
-            return View(Movie);
+            var movieVM = _mapper.Map<MovieViewModel>(movie);
+            ViewData["AuthorId"] = new SelectList(_context.Users, "Id", "Id", movie.AuthorId);
+            return View(movieVM);
         }
 
         // POST: Movies/Edit/5
@@ -94,15 +104,16 @@ namespace Movie.Web.Controllers
         // more details see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Description,Year,Producer,AuthorId")] Movie.Models.Movie movie)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Description,Year,Producer,AuthorId,NewPoster")] MovieViewModel movieVM)
         {
-            if (id != movie.Id)
+            if (id != movieVM.Id)
             {
                 return NotFound();
             }
 
             if (ModelState.IsValid)
             {
+                var movie = _mapper.Map<MovieModel>(movieVM);
                 try
                 {
                     _context.Update(movie);
@@ -121,8 +132,8 @@ namespace Movie.Web.Controllers
                 }
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["AuthorId"] = new SelectList(_context.Users, "Id", "Id", movie.AuthorId);
-            return View(movie);
+            ViewData["AuthorId"] = new SelectList(_context.Users, "Id", "Id", movieVM.AuthorId);
+            return View(movieVM);
         }
 
         // GET: Movies/Delete/5
@@ -133,15 +144,15 @@ namespace Movie.Web.Controllers
                 return NotFound();
             }
 
-            var Movie = await _context.Movies
+            var movie = await _context.Movies
                 .Include(f => f.Author)
                 .FirstOrDefaultAsync(m => m.Id == id);
-            if (Movie == null)
+            if (movie == null)
             {
                 return NotFound();
             }
 
-            return View(Movie);
+            return View(movie);
         }
 
         // POST: Movies/Delete/5
@@ -149,8 +160,8 @@ namespace Movie.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var Movie = await _context.Movies.FindAsync(id);
-            _context.Movies.Remove(Movie);
+            var movie = await _context.Movies.FindAsync(id);
+            _context.Movies.Remove(movie);
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }

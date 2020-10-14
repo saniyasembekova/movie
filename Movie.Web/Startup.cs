@@ -1,4 +1,5 @@
 ﻿using System.Threading.Tasks;
+using AutoMapper;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -9,17 +10,19 @@ using Movie.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
+using Movie.Web.Models.AutoMapperProfiles;
 
 namespace Movie.Web
 {
     public class Startup
     {
+        public IConfiguration Configuration { get; }
         public Startup(IConfiguration configuration)
         {
             Configuration = configuration;
         }
 
-        public IConfiguration Configuration { get; }
+        #region public
 
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
@@ -31,6 +34,7 @@ namespace Movie.Web
                 options.MinimumSameSitePolicy = SameSiteMode.None;
             });
 
+            services.AddSingleton(ConfigureMapper());
 
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
 
@@ -72,6 +76,24 @@ namespace Movie.Web
                     template: "{controller=Movies}/{action=Index}/{id?}");
             });
         }
+
+        #endregion
+
+
+        #region private
+
+        private static IMapper ConfigureMapper()
+        {
+            var mapperConfig = new MapperConfiguration(mc =>
+            {
+                mc.AddProfile(new MovieProfile());
+            });
+
+            IMapper mapper = mapperConfig.CreateMapper();
+            return mapper;
+        }
+
+        #endregion
     }
 
     public class YourSmsSender: IEmailSender
